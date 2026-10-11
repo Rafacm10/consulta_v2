@@ -93,10 +93,55 @@ async function fetchWoo(store) {
 }
 
 // ---------- Tienda de plataforma desconocida: prueba Shopify y luego WooCommerce ----------
+// ---------- Tiendas PrestaShop: búsqueda con respuesta JSON (cabecera AJAX estándar del propio tema) ----------
+async function fetchPresta(store) {
+  const origin = new URL(store.url).origin;
+  const raw = []; const seen = new Set();
+  let fails = 0;
+  for (const term of store.terms || ['pokemon', 'aniversario', 'megaevolucion']) {
+    try {
+      for (let page = 1; page <= (store.maxPages || 6); page++) {
+        const r = await fetch(`${origin}/?controller=search&s=${encodeURIComponent(term)}&resultsPerPage=100&page=${page}`, {
+          headers: { 'User-Agent': UA, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Accept-Language': 'es-ES,es;q=0.9' },
+          signal: AbortSignal.timeout(20000), redirect: 'follow' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        let d; try { d = await r.json(); } catch { throw new Error('la tienda no devolvió datos legibles'); }
+        const arr = Array.isArray(d.products) ? d.products : [];
+        if (!arr.length) break;
+        for (const x of arr) { const id = x.id_product || x.url; if (!seen.has(id)) { seen.add(id); raw.push(x); } }
+        if (!d.pagination || page >= (d.pagination.pages_count || 1)) break;
+        await sleep(300);
+      }
+    } catch (e) { fails++; if (!raw.length && fails >= 2) throw e; }
+    await sleep(300);
+  }
+  if (!raw.length) throw new Error('sin productos');
+  return raw.map(x => {
+    const price = Number(x.price_amount ?? String(x.price || '').replace(/[^\d,.]/g, '').replace(',', '.'));
+    const av = String(x.availability || '');
+    return { title: decodeEntities(x.name || ''), tags: x.category_name || '', vendor: '', url: x.url,
+      avail: av ? av !== 'unavailable' : Number(x.quantity) > 0, backorder: av === 'available_for_order' && !(Number(x.quantity) > 0) && /reserva|preventa/i.test(String(x.availability_message || '')),
+      price: Number.isFinite(price) ? price : null };
+  }).filter(x => x.url && x.title);
+}
+
+// Si no se puede leer, al menos averigua qué plataforma es para decirlo en el aviso
+async function guessPlatform(store) {
+  try {
+    const html = await (await get(store.listing || store.url, 'text/html')).text();
+    if (/prestashop/i.test(html)) return 'PrestaShop';
+    if (/wp-content|woocommerce/i.test(html)) return 'WooCommerce';
+    if (/cdn\.shopify|Shopify\.theme/i.test(html)) return 'Shopify';
+    if (/Mage\.Cookies|magento/i.test(html)) return 'Magento';
+    return 'plataforma propia';
+  } catch (e) { return String(e.message || e).slice(0, 25); }
+}
+
 async function fetchAuto(store) {
   try { return await fetchShopify(store); } catch {}
   try { return await fetchWoo(store); } catch {}
-  throw new Error('no es Shopify ni WooCommerce: hay que mirarla a mano');
+  try { return await fetchPresta(store); } catch {}
+  throw new Error(`no se puede leer (${await guessPlatform(store)}): mirarla a mano`);
 }
 
 // ---------- Amazon: solo cuenta como stock si hay botón "Añadir a la cesta" y NO pide invitación ----------
