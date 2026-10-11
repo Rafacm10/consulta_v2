@@ -82,7 +82,7 @@
   },
   {
     "name": "BattleDeck",
-    "type": "shopify",
+    "type": "auto",
     "url": "https://www.battledeck.es"
   },
   {
@@ -97,7 +97,7 @@
   },
   {
     "name": "La Bóveda Friki",
-    "type": "shopify",
+    "type": "auto",
     "url": "https://labovedafriki.es"
   },
   {
@@ -147,7 +147,7 @@
   },
   {
     "name": "ShinyHit",
-    "type": "woo",
+    "type": "auto",
     "url": "https://shinyhit.com"
   },
   {
@@ -157,27 +157,27 @@
   },
   {
     "name": "Graciano Cards",
-    "type": "woo",
+    "type": "auto",
     "url": "https://gracianocards.com"
   },
   {
     "name": "Epic Hit Store",
-    "type": "woo",
+    "type": "auto",
     "url": "https://epichitstore.es"
   },
   {
     "name": "Chewe Center",
-    "type": "woo",
+    "type": "auto",
     "url": "https://chewecenter.com"
   },
   {
     "name": "Mundo Distorsión",
-    "type": "woo",
+    "type": "auto",
     "url": "https://mundodistorsion.es"
   },
   {
     "name": "Odissey Games",
-    "type": "woo",
+    "type": "auto",
     "url": "https://odisseygames.com"
   },
   {
